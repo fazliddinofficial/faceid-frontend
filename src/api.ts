@@ -1,10 +1,10 @@
 import axios from 'axios';
 
-const api = axios.create({
-  baseURL: 'http://localhost:3000',
-});
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim() || 'http://localhost:3000';
 
-// ── Types ──────────────────────────────────────────────────────────────────────
+const api = axios.create({
+  baseURL: apiBaseUrl,
+});
 
 export interface AttendanceRecord {
   _id: string;
@@ -31,6 +31,7 @@ export interface TodaySummaryEmployee {
   checkIn: string | null;
   checkOut: string | null;
   totalScans: number;
+  totalWorkedMinutes: number;
 }
 
 export interface DailySummary {
@@ -52,19 +53,23 @@ export interface RangeAttendance {
   records: AttendanceRecord[];
 }
 
-// ── API calls ──────────────────────────────────────────────────────────────────
-
 export const getToday = () =>
-  api.get<TodayAttendance>('/attendance/today').then(r => r.data);
+  api.get<TodayAttendance>('/attendance/today').then((response) => response.data);
 
 export const getSummary = (date?: string) =>
-  api.get<DailySummary>('/attendance/summary', { params: { date } }).then(r => r.data);
+  api
+    .get<DailySummary>('/attendance/summary', { params: { date } })
+    .then((response) => response.data);
 
 export const getRange = (startDate: string, endDate: string) =>
-  api.get<RangeAttendance>('/attendance/range', { params: { startDate, endDate } }).then(r => r.data);
+  api
+    .get<RangeAttendance>('/attendance/range', { params: { startDate, endDate } })
+    .then((response) => response.data);
 
 export const getEmployeeAttendance = (employeeNo: string, page = 1, limit = 20) =>
-  api.get(`/attendance/employee/${employeeNo}`, { params: { page, limit } }).then(r => r.data);
+  api
+    .get(`/attendance/employee/${employeeNo}`, { params: { page, limit } })
+    .then((response) => response.data);
 
 export const getEmployees = () =>
-  api.get<Employee[]>('/employees').then(r => r.data);
+  api.get<Employee[]>('/employees/all').then((response) => response.data);

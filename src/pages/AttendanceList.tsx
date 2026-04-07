@@ -1,24 +1,31 @@
-import { useEffect, useState } from 'react';
+import { type ChangeEvent, useEffect, useState } from 'react';
 import { getRange, type AttendanceRecord } from '../api';
+import { getEndOfDayParam, getLocalDateInputValue, getStartOfDayParam } from '../utils/date';
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' });
+  return new Date(iso).toLocaleDateString([], {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 
 function Badge({ type }: { type: 'check-in' | 'check-out' }) {
   return (
-    <span style={{
-      fontSize: '12px',
-      padding: '2px 10px',
-      borderRadius: '999px',
-      background: type === 'check-in' ? '#f0fdf4' : '#fafafa',
-      color: type === 'check-in' ? '#16a34a' : '#888',
-      border: `1px solid ${type === 'check-in' ? '#bbf7d0' : '#e5e5e5'}`,
-    }}>
+    <span
+      style={{
+        fontSize: '12px',
+        padding: '2px 10px',
+        borderRadius: '999px',
+        background: type === 'check-in' ? '#f0fdf4' : '#fafafa',
+        color: type === 'check-in' ? '#16a34a' : '#888',
+        border: `1px solid ${type === 'check-in' ? '#bbf7d0' : '#e5e5e5'}`,
+      }}
+    >
       {type}
     </span>
   );
@@ -26,81 +33,128 @@ function Badge({ type }: { type: 'check-in' | 'check-out' }) {
 
 function VerifyBadge({ mode }: { mode: string }) {
   const colors: Record<string, { bg: string; color: string; border: string }> = {
-    face:        { bg: '#eff6ff', color: '#2563eb', border: '#bfdbfe' },
+    face: { bg: '#eff6ff', color: '#2563eb', border: '#bfdbfe' },
     fingerprint: { bg: '#fdf4ff', color: '#9333ea', border: '#e9d5ff' },
-    card:        { bg: '#fff7ed', color: '#ea580c', border: '#fed7aa' },
-    pin:         { bg: '#fafafa', color: '#888',    border: '#e5e5e5' },
+    card: { bg: '#fff7ed', color: '#ea580c', border: '#fed7aa' },
+    pin: { bg: '#fafafa', color: '#888', border: '#e5e5e5' },
   };
-  const c = colors[mode] ?? colors.pin;
+  const color = colors[mode] ?? colors.pin;
+
   return (
-    <span style={{
-      fontSize: '12px',
-      padding: '2px 10px',
-      borderRadius: '999px',
-      background: c.bg,
-      color: c.color,
-      border: `1px solid ${c.border}`,
-    }}>
+    <span
+      style={{
+        fontSize: '12px',
+        padding: '2px 10px',
+        borderRadius: '999px',
+        background: color.bg,
+        color: color.color,
+        border: `1px solid ${color.border}`,
+      }}
+    >
       {mode}
     </span>
   );
 }
 
-export default function AttendanceList() {
-  const today = new Date().toISOString().split('T')[0];
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  return 'Failed to load attendance records.';
+}
 
-  const [startDate, setStartDate] = useState(today);
-  const [endDate, setEndDate]     = useState(today);
-  const [search, setSearch]       = useState('');
-  const [records, setRecords]     = useState<AttendanceRecord[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [total, setTotal]         = useState(0);
+export default function AttendanceList() {
+  const now = new Date();
+  const today = getLocalDateInputValue(now);
+  const defaultStartDate = getLocalDateInputValue(
+    new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000),
+  );
+
+  const [startDate, setStartDate] = useState(defaultStartDate);
+  const [endDate, setEndDate] = useState(today);
+  const [search, setSearch] = useState('');
+  const [records, setRecords] = useState<AttendanceRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [total, setTotal] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoading(true);
-    getRange(startDate, `${endDate}T23:59:59`)
-      .then(data => {
+    let cancelled = false;
+
+    async function loadRecords() {
+      try {
+        const data = await getRange(getStartOfDayParam(startDate), getEndOfDayParam(endDate));
+        if (cancelled) return;
+
         setRecords(data.records);
         setTotal(data.total);
-      })
-      .finally(() => setLoading(false));
+        setError(null);
+      } catch (error) {
+        if (cancelled) return;
+
+        setRecords([]);
+        setTotal(0);
+        setError(getErrorMessage(error));
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadRecords();
+
+    return () => {
+      cancelled = true;
+    };
   }, [startDate, endDate]);
 
-  // Filter by name or employeeNo on the frontend
-  const filtered = records.filter(r =>
-    search === '' ||
-    r.name.toLowerCase().includes(search.toLowerCase()) ||
-    r.employeeNo.toLowerCase().includes(search.toLowerCase()),
-  );
+  function handleStartDateChange(event: ChangeEvent<HTMLInputElement>) {
+    setStartDate(event.target.value);
+    setLoading(true);
+    setError(null);
+  }
+
+  function handleEndDateChange(event: ChangeEvent<HTMLInputElement>) {
+    setEndDate(event.target.value);
+    setLoading(true);
+    setError(null);
+  }
+
+  const filtered = records.filter((record) => {
+    if (search === '') return true;
+
+    const normalizedSearch = search.toLowerCase();
+    return (
+      record.name.toLowerCase().includes(normalizedSearch) ||
+      record.employeeNo.toLowerCase().includes(normalizedSearch)
+    );
+  });
 
   return (
     <div>
-      {/* Header */}
       <div style={{ marginBottom: '24px' }}>
         <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 600, color: '#111' }}>Attendance</h1>
-        <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#888' }}>
-          {total} records found
-        </p>
+        <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#888' }}>{total} records found</p>
       </div>
 
-      {/* Filters */}
-      <div style={{
-        background: '#fff',
-        border: '1px solid #e5e5e5',
-        borderRadius: '12px',
-        padding: '16px 24px',
-        display: 'flex',
-        gap: '16px',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        marginBottom: '24px',
-      }}>
+      <div
+        style={{
+          background: '#fff',
+          border: '1px solid #e5e5e5',
+          borderRadius: '12px',
+          padding: '16px 24px',
+          display: 'flex',
+          gap: '16px',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          marginBottom: '24px',
+        }}
+      >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <label style={{ fontSize: '12px', color: '#888' }}>From</label>
           <input
             type="date"
             value={startDate}
-            onChange={e => setStartDate(e.target.value)}
+            onChange={handleStartDateChange}
             style={{
               border: '1px solid #e5e5e5',
               borderRadius: '8px',
@@ -116,7 +170,7 @@ export default function AttendanceList() {
           <input
             type="date"
             value={endDate}
-            onChange={e => setEndDate(e.target.value)}
+            onChange={handleEndDateChange}
             style={{
               border: '1px solid #e5e5e5',
               borderRadius: '8px',
@@ -133,7 +187,7 @@ export default function AttendanceList() {
             type="text"
             placeholder="Name or employee ID..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(event) => setSearch(event.target.value)}
             style={{
               border: '1px solid #e5e5e5',
               borderRadius: '8px',
@@ -147,9 +201,19 @@ export default function AttendanceList() {
         </div>
       </div>
 
-      {/* Table */}
-      <div style={{ background: '#fff', border: '1px solid #e5e5e5', borderRadius: '12px', overflow: 'hidden' }}>
-        {loading ? (
+      <div
+        style={{
+          background: '#fff',
+          border: '1px solid #e5e5e5',
+          borderRadius: '12px',
+          overflow: 'hidden',
+        }}
+      >
+        {error ? (
+          <div style={{ padding: '48px', textAlign: 'center', color: '#b91c1c', fontSize: '14px' }}>
+            {error}
+          </div>
+        ) : loading ? (
           <div style={{ padding: '48px', textAlign: 'center', color: '#888', fontSize: '14px' }}>
             Loading...
           </div>
@@ -161,33 +225,50 @@ export default function AttendanceList() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#fafafa' }}>
-                {['Employee No', 'Name', 'Date', 'Time', 'Type', 'Verify mode'].map(h => (
-                  <th key={h} style={{
-                    padding: '12px 24px',
-                    textAlign: 'left',
-                    fontSize: '12px',
-                    fontWeight: 500,
-                    color: '#888',
-                    borderBottom: '1px solid #e5e5e5',
-                  }}>{h}</th>
+                {['Employee No', 'Name', 'Date', 'Time', 'Type', 'Verify mode'].map((heading) => (
+                  <th
+                    key={heading}
+                    style={{
+                      padding: '12px 24px',
+                      textAlign: 'left',
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      color: '#888',
+                      borderBottom: '1px solid #e5e5e5',
+                    }}
+                  >
+                    {heading}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r, i) => (
+              {filtered.map((record, index) => (
                 <tr
-                  key={r._id}
+                  key={record._id}
                   style={{
-                    background: i % 2 === 0 ? '#fff' : '#fafafa',
+                    background: index % 2 === 0 ? '#fff' : '#fafafa',
                     transition: 'background 0.1s',
                   }}
                 >
-                  <td style={{ padding: '14px 24px', fontSize: '13px', color: '#888' }}>{r.employeeNo}</td>
-                  <td style={{ padding: '14px 24px', fontSize: '14px', color: '#111', fontWeight: 500 }}>{r.name}</td>
-                  <td style={{ padding: '14px 24px', fontSize: '13px', color: '#888' }}>{formatDate(r.scanTime)}</td>
-                  <td style={{ padding: '14px 24px', fontSize: '13px', color: '#111' }}>{formatTime(r.scanTime)}</td>
-                  <td style={{ padding: '14px 24px' }}><Badge type={r.attendanceType} /></td>
-                  <td style={{ padding: '14px 24px' }}><VerifyBadge mode={r.verifyMode} /></td>
+                  <td style={{ padding: '14px 24px', fontSize: '13px', color: '#888' }}>
+                    {record.employeeNo}
+                  </td>
+                  <td style={{ padding: '14px 24px', fontSize: '14px', color: '#111', fontWeight: 500 }}>
+                    {record.name}
+                  </td>
+                  <td style={{ padding: '14px 24px', fontSize: '13px', color: '#888' }}>
+                    {formatDate(record.scanTime)}
+                  </td>
+                  <td style={{ padding: '14px 24px', fontSize: '13px', color: '#111' }}>
+                    {formatTime(record.scanTime)}
+                  </td>
+                  <td style={{ padding: '14px 24px' }}>
+                    <Badge type={record.attendanceType} />
+                  </td>
+                  <td style={{ padding: '14px 24px' }}>
+                    <VerifyBadge mode={record.verifyMode} />
+                  </td>
                 </tr>
               ))}
             </tbody>
