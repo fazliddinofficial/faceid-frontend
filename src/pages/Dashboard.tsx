@@ -1,47 +1,68 @@
-import { type ChangeEvent, useEffect, useState } from 'react';
+import { type ChangeEvent, useEffect, useState } from "react";
 import {
   getEmployees,
   getSummary,
   type DailySummary,
   type Employee,
   type TodaySummaryEmployee,
-} from '../api';
-import { getLocalDateInputValue } from '../utils/date';
+} from "../api";
+import { getLocalDateInputValue } from "../utils/date";
+
+const now = new Date();
+const currentTime = new Date(
+  now.toLocaleString("en-US", { timeZone: "Asia/Tashkent" }),
+);
+
+const hour1 = new Date();
+hour1.setHours(13, 0, 0, 0);
+
+const hour2 = new Date();
+hour2.setHours(14, 0, 0, 0);
+
+const hour7 = new Date();
+hour7.setHours(7, 0, 0, 0);
 
 function StatCard({ label, value }: { label: string; value: number | string }) {
   return (
     <div
       style={{
-        background: '#fff',
-        border: '1px solid #e5e5e5',
-        borderRadius: '12px',
-        padding: '24px',
-        minWidth: '160px',
+        background: "#fff",
+        border: "1px solid #e5e5e5",
+        borderRadius: "12px",
+        padding: "24px",
+        minWidth: "160px",
         flex: 1,
       }}
     >
-      <div style={{ fontSize: '13px', color: '#888', marginBottom: '8px' }}>{label}</div>
-      <div style={{ fontSize: '32px', fontWeight: 600, color: '#111' }}>{value}</div>
+      <div style={{ fontSize: "13px", color: "#888", marginBottom: "8px" }}>
+        {label}
+      </div>
+      <div style={{ fontSize: "32px", fontWeight: 600, color: "#111" }}>
+        {value}
+      </div>
     </div>
   );
 }
 
 function formatTime(iso: string | null) {
-  if (!iso) return '--';
-  return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if (!iso) return "in";
+  return new Date(iso).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function formatDuration(totalWorkedMinutes: number) {
-  if (totalWorkedMinutes <= 0) return '--';
+  if (totalWorkedMinutes <= 0) return "--";
 
   const hours = Math.floor(totalWorkedMinutes / 60);
   const minutes = totalWorkedMinutes % 60;
-  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 }
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
-  return 'Failed to load dashboard data.';
+  return "Failed to load dashboard data.";
 }
 
 export default function Dashboard() {
@@ -117,27 +138,317 @@ export default function Dashboard() {
     setSummaryError(null);
   }
 
-  const checkedIn = summary?.employees.filter((employee) => employee.checkIn).length ?? 0;
-  const checkedOut = summary?.employees.filter((employee) => employee.checkOut).length ?? 0;
+  const checkedIn =
+    summary?.employees.filter((employee) => employee.checkIn).length ?? 0;
+
+  const checkedOut =
+    summary?.employees.filter((employee) => employee.checkOut).length ?? 0;
+
   const total = employees.length;
   const notYetIn = Math.max(total - checkedIn, 0);
   const loading = summaryLoading || employeesLoading;
   const error = summaryError ?? employeesError;
   const summaryEmployees = summary?.employees ?? [];
 
+  let lateNumbers = 0;
+  let lateAfternoon = 0;
+
+  summary?.employees.forEach((v) => {
+    function isLate(checkInTime: string | null): boolean {
+      if (!checkInTime) return false;
+      const checkIn = new Date(checkInTime);
+      const threshold = new Date(checkIn);
+      threshold.setHours(8, 0, 0, 0);
+      return checkIn > threshold;
+    }
+    if (isLate(v.checkIn)) {
+      v.isLate = true;
+      lateNumbers++;
+    }
+
+    function out12(time: string | null) {
+      if (!time) return false;
+      const checkedOut = new Date(time);
+      const threshold = new Date(checkedOut);
+      threshold.setHours(12, 0, 0, 0);
+      return checkedOut < threshold;
+    }
+
+    if (out12(v.checkOut)) {
+      v.out12 = true;
+    }
+
+    function at14(checkInTime: string | null): boolean {
+      if (!checkInTime) return false;
+      const checkIn = new Date(checkInTime);
+      const threshold = new Date(checkIn);
+      threshold.setHours(14, 0, 0, 0);
+      return checkIn > threshold;
+    }
+    if (at14(v.checkIn)) {
+      v.in14 = false;
+      lateAfternoon++;
+    }
+    if (!at14(v.checkIn)) {
+      v.in14 = true;
+    }
+  });
+
+  // if (currentTime > hour7 && currentTime < hour1) {
+  //   return (
+  //     <div>
+  //       <div
+  //         style={{
+  //           display: "flex",
+  //           alignItems: "center",
+  //           justifyContent: "space-between",
+  //           marginBottom: "24px",
+  //         }}
+  //       >
+  //         <div>
+  //           <h1
+  //             style={{
+  //               margin: 0,
+  //               fontSize: "22px",
+  //               fontWeight: 600,
+  //               color: "#111",
+  //             }}
+  //           >
+  //             Dashboard
+  //           </h1>
+  //           <p style={{ margin: "4px 0 0", fontSize: "13px", color: "#888" }}>
+  //             {summary?.date ?? date}
+  //           </p>
+  //         </div>
+  //         <input
+  //           type="date"
+  //           value={date}
+  //           onChange={handleDateChange}
+  //           style={{
+  //             border: "1px solid #e5e5e5",
+  //             borderRadius: "8px",
+  //             padding: "8px 12px",
+  //             fontSize: "14px",
+  //             color: "#111",
+  //             background: "#fff",
+  //             cursor: "pointer",
+  //           }}
+  //         />
+  //       </div>
+
+  //       <div
+  //         style={{
+  //           display: "flex",
+  //           gap: "16px",
+  //           marginBottom: "32px",
+  //           flexWrap: "nowrap",
+  //         }}
+  //       >
+  //         <StatCard
+  //           label="Total employees"
+  //           value={employeesLoading ? "..." : total}
+  //         />
+  //         <StatCard
+  //           label="Checked in"
+  //           value={summaryLoading ? "..." : checkedIn}
+  //         />
+  //         <StatCard
+  //           label="Checked out"
+  //           value={summaryLoading ? "..." : checkedOut}
+  //         />
+  //         <StatCard label="Not yet in" value={loading ? "..." : notYetIn} />
+  //         <StatCard label="Late" value={loading ? "..." : lateNumbers} />
+  //       </div>
+
+  //       <div
+  //         style={{
+  //           background: "#fff",
+  //           border: "1px solid #e5e5e5",
+  //           borderRadius: "12px",
+  //           overflow: "hidden",
+  //         }}
+  //       >
+  //         <div
+  //           style={{ padding: "16px 24px", borderBottom: "1px solid #e5e5e5" }}
+  //         >
+  //           <span style={{ fontWeight: 500, fontSize: "15px", color: "#111" }}>
+  //             Today's summary
+  //           </span>
+  //         </div>
+
+  //         {error ? (
+  //           <div
+  //             style={{
+  //               padding: "48px",
+  //               textAlign: "center",
+  //               color: "#b91c1c",
+  //               fontSize: "14px",
+  //             }}
+  //           >
+  //             {error}
+  //           </div>
+  //         ) : loading ? (
+  //           <div
+  //             style={{
+  //               padding: "48px",
+  //               textAlign: "center",
+  //               color: "#888",
+  //               fontSize: "14px",
+  //             }}
+  //           >
+  //             Loading...
+  //           </div>
+  //         ) : summaryEmployees.length === 0 ? (
+  //           <div
+  //             style={{
+  //               padding: "48px",
+  //               textAlign: "center",
+  //               color: "#888",
+  //               fontSize: "14px",
+  //             }}
+  //           >
+  //             No scans recorded for this date
+  //           </div>
+  //         ) : (
+  //           <table style={{ width: "100%", borderCollapse: "collapse" }}>
+  //             <thead>
+  //               <tr style={{ background: "#fafafa" }}>
+  //                 {[
+  //                   "Employee No",
+  //                   "Name",
+  //                   "Check In",
+  //                   "Check Out",
+  //                   "Total Hours",
+  //                   "Total Scans",
+  //                   "On time",
+  //                 ].map((heading) => (
+  //                   <th
+  //                     key={heading}
+  //                     style={{
+  //                       padding: "12px 24px",
+  //                       textAlign: "left",
+  //                       fontSize: "12px",
+  //                       fontWeight: 500,
+  //                       color: "#888",
+  //                       borderBottom: "1px solid #e5e5e5",
+  //                     }}
+  //                   >
+  //                     {heading}
+  //                   </th>
+  //                 ))}
+  //               </tr>
+  //             </thead>
+  //             <tbody>
+  //               {summaryEmployees.map(
+  //                 (employee: TodaySummaryEmployee, index: number) => (
+  //                   <tr
+  //                     key={employee.employeeNo}
+  //                     style={{
+  //                       background: index % 2 === 0 ? "#fff" : "#fafafa",
+  //                     }}
+  //                   >
+  //                     <td
+  //                       style={{
+  //                         padding: "14px 24px",
+  //                         fontSize: "13px",
+  //                         color: "#888",
+  //                       }}
+  //                     >
+  //                       {employee.employeeNo}
+  //                     </td>
+  //                     <td
+  //                       style={{
+  //                         padding: "14px 24px",
+  //                         fontSize: "14px",
+  //                         color: "#111",
+  //                         fontWeight: 500,
+  //                       }}
+  //                     >
+  //                       {employee.name}
+  //                     </td>
+  //                     <td
+  //                       style={{
+  //                         padding: "14px 24px",
+  //                         fontSize: "13px",
+  //                         color: "#111",
+  //                       }}
+  //                     >
+  //                       {[
+  //                         formatTime(employee.checkIn),
+  //                         employee.isLate ? "❌" : "✅",
+  //                       ]}
+  //                     </td>
+  //                     <td
+  //                       style={{
+  //                         padding: "14px 24px",
+  //                         fontSize: "13px",
+  //                         color: "#111",
+  //                       }}
+  //                     >
+  //                       {[
+  //                         formatTime(employee.checkOut),
+  //                         employee.out12 ? "❌" : "✅",
+  //                       ]}
+  //                     </td>
+  //                     <td
+  //                       style={{
+  //                         padding: "14px 24px",
+  //                         fontSize: "13px",
+  //                         color: "#111",
+  //                       }}
+  //                     >
+  //                       {formatDuration(employee.totalWorkedMinutes)}
+  //                     </td>
+  //                     <td
+  //                       style={{
+  //                         padding: "14px 24px",
+  //                         fontSize: "13px",
+  //                         color: "#111",
+  //                       }}
+  //                     >
+  //                       {employee.totalScans}
+  //                     </td>
+  //                     <td
+  //                       style={{
+  //                         padding: "14px 24px",
+  //                         fontSize: "13px",
+  //                         color: "red",
+  //                       }}
+  //                     >
+  //                       {employee.isLate ? "❌" : "✅"}
+  //                     </td>
+  //                   </tr>
+  //                 ),
+  //               )}
+  //             </tbody>
+  //           </table>
+  //         )}
+  //       </div>
+  //     </div>
+  //   );
+  // } else {
   return (
     <div>
       <div
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '24px',
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: "24px",
         }}
       >
         <div>
-          <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 600, color: '#111' }}>Dashboard</h1>
-          <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#888' }}>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: "22px",
+              fontWeight: 600,
+              color: "#111",
+            }}
+          >
+            Dashboard
+          </h1>
+          <p style={{ margin: "4px 0 0", fontSize: "13px", color: "#888" }}>
             {summary?.date ?? date}
           </p>
         </div>
@@ -146,62 +457,112 @@ export default function Dashboard() {
           value={date}
           onChange={handleDateChange}
           style={{
-            border: '1px solid #e5e5e5',
-            borderRadius: '8px',
-            padding: '8px 12px',
-            fontSize: '14px',
-            color: '#111',
-            background: '#fff',
-            cursor: 'pointer',
+            border: "1px solid #e5e5e5",
+            borderRadius: "8px",
+            padding: "8px 12px",
+            fontSize: "14px",
+            color: "#111",
+            background: "#fff",
+            cursor: "pointer",
           }}
         />
       </div>
 
-      <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', flexWrap: 'wrap' }}>
-        <StatCard label="Total employees" value={employeesLoading ? '...' : total} />
-        <StatCard label="Checked in" value={summaryLoading ? '...' : checkedIn} />
-        <StatCard label="Checked out" value={summaryLoading ? '...' : checkedOut} />
-        <StatCard label="Not yet in" value={loading ? '...' : notYetIn} />
+      <div
+        style={{
+          display: "flex",
+          gap: "16px",
+          marginBottom: "32px",
+          flexWrap: "nowrap",
+        }}
+      >
+        <StatCard
+          label="Total employees"
+          value={employeesLoading ? "..." : total}
+        />
+        <StatCard
+          label="Checked in"
+          value={summaryLoading ? "..." : checkedIn}
+        />
+        <StatCard
+          label="Checked out"
+          value={summaryLoading ? "..." : checkedOut}
+        />
+        <StatCard label="Not yet in" value={loading ? "..." : notYetIn} />
+        <StatCard label="Late" value={loading ? "..." : lateAfternoon} />
       </div>
 
       <div
         style={{
-          background: '#fff',
-          border: '1px solid #e5e5e5',
-          borderRadius: '12px',
-          overflow: 'hidden',
+          background: "#fff",
+          border: "1px solid #e5e5e5",
+          borderRadius: "12px",
+          overflow: "hidden",
         }}
       >
-        <div style={{ padding: '16px 24px', borderBottom: '1px solid #e5e5e5' }}>
-          <span style={{ fontWeight: 500, fontSize: '15px', color: '#111' }}>Today's summary</span>
+        <div
+          style={{ padding: "16px 24px", borderBottom: "1px solid #e5e5e5" }}
+        >
+          <span style={{ fontWeight: 500, fontSize: "15px", color: "#111" }}>
+            Today's summary
+          </span>
         </div>
 
         {error ? (
-          <div style={{ padding: '48px', textAlign: 'center', color: '#b91c1c', fontSize: '14px' }}>
+          <div
+            style={{
+              padding: "48px",
+              textAlign: "center",
+              color: "#b91c1c",
+              fontSize: "14px",
+            }}
+          >
             {error}
           </div>
         ) : loading ? (
-          <div style={{ padding: '48px', textAlign: 'center', color: '#888', fontSize: '14px' }}>
+          <div
+            style={{
+              padding: "48px",
+              textAlign: "center",
+              color: "#888",
+              fontSize: "14px",
+            }}
+          >
             Loading...
           </div>
         ) : summaryEmployees.length === 0 ? (
-          <div style={{ padding: '48px', textAlign: 'center', color: '#888', fontSize: '14px' }}>
+          <div
+            style={{
+              padding: "48px",
+              textAlign: "center",
+              color: "#888",
+              fontSize: "14px",
+            }}
+          >
             No scans recorded for this date
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ background: '#fafafa' }}>
-                {['Employee No', 'Name', 'Check In', 'Check Out', 'Total Hours', 'Total Scans'].map((heading) => (
+              <tr style={{ background: "#fafafa" }}>
+                {[
+                  "Employee No",
+                  "Name",
+                  "Check In",
+                  "Check Out",
+                  "Total Hours",
+                  "Total Scans",
+                  "On time",
+                ].map((heading) => (
                   <th
                     key={heading}
                     style={{
-                      padding: '12px 24px',
-                      textAlign: 'left',
-                      fontSize: '12px',
+                      padding: "12px 24px",
+                      textAlign: "left",
+                      fontSize: "12px",
                       fontWeight: 500,
-                      color: '#888',
-                      borderBottom: '1px solid #e5e5e5',
+                      color: "#888",
+                      borderBottom: "1px solid #e5e5e5",
                     }}
                   >
                     {heading}
@@ -210,35 +571,92 @@ export default function Dashboard() {
               </tr>
             </thead>
             <tbody>
-              {summaryEmployees.map((employee: TodaySummaryEmployee, index: number) => (
-                <tr
-                  key={employee.employeeNo}
-                  style={{ background: index % 2 === 0 ? '#fff' : '#fafafa' }}
-                >
-                  <td style={{ padding: '14px 24px', fontSize: '13px', color: '#888' }}>
-                    {employee.employeeNo}
-                  </td>
-                  <td style={{ padding: '14px 24px', fontSize: '14px', color: '#111', fontWeight: 500 }}>
-                    {employee.name}
-                  </td>
-                  <td style={{ padding: '14px 24px', fontSize: '13px', color: '#111' }}>
-                    {formatTime(employee.checkIn)}
-                  </td>
-                  <td style={{ padding: '14px 24px', fontSize: '13px', color: '#111' }}>
-                    {formatTime(employee.checkOut)}
-                  </td>
-                  <td style={{ padding: '14px 24px', fontSize: '13px', color: '#111' }}>
-                    {formatDuration(employee.totalWorkedMinutes)}
-                  </td>
-                  <td style={{ padding: '14px 24px', fontSize: '13px', color: '#111' }}>
-                    {employee.totalScans}
-                  </td>
-                </tr>
-              ))}
+              {summaryEmployees.map(
+                (employee: TodaySummaryEmployee, index: number) => (
+                  <tr
+                    key={employee.employeeNo}
+                    style={{
+                      background: index % 2 === 0 ? "#fff" : "#fafafa",
+                    }}
+                  >
+                    <td
+                      style={{
+                        padding: "14px 24px",
+                        fontSize: "13px",
+                        color: "#888",
+                      }}
+                    >
+                      {employee.employeeNo}
+                    </td>
+                    <td
+                      style={{
+                        padding: "14px 24px",
+                        fontSize: "14px",
+                        color: "#111",
+                        fontWeight: 500,
+                      }}
+                    >
+                      {employee.name}
+                    </td>
+                    <td
+                      style={{
+                        padding: "14px 24px",
+                        fontSize: "13px",
+                        color: "#111",
+                      }}
+                    >
+                      {[
+                        formatTime(employee.checkIn),
+                        employee.in14 ? `✅` : `❌`,
+                      ]}
+                    </td>
+                    <td
+                      style={{
+                        padding: "14px 24px",
+                        fontSize: "13px",
+                        color: "#111",
+                      }}
+                    >
+                      {[
+                        formatTime(employee.checkOut),
+                        employee.out18 ? "❌" : "✅",
+                      ]}
+                    </td>
+                    <td
+                      style={{
+                        padding: "14px 24px",
+                        fontSize: "13px",
+                        color: "#111",
+                      }}
+                    >
+                      {formatDuration(employee.totalWorkedMinutes)}
+                    </td>
+                    <td
+                      style={{
+                        padding: "14px 24px",
+                        fontSize: "13px",
+                        color: "#111",
+                      }}
+                    >
+                      {employee.totalScans}
+                    </td>
+                    <td
+                      style={{
+                        padding: "14px 24px",
+                        fontSize: "13px",
+                        color: "red",
+                      }}
+                    >
+                      {employee.in14 ? "✅" : "❌"}
+                    </td>
+                  </tr>
+                ),
+              )}
             </tbody>
           </table>
         )}
       </div>
     </div>
   );
+  // }
 }
