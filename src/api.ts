@@ -33,10 +33,6 @@ export interface TodaySummaryEmployee {
   totalScans: number;
   totalWorkedMinutes: number;
   isLate?: boolean;
-  at8: boolean;
-  out12: boolean;
-  in14: boolean;
-  out18: boolean;
 }
 
 export interface DailySummary {
