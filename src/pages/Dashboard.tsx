@@ -6,13 +6,10 @@ import {
   type Employee,
   type TodaySummaryEmployee,
 } from "../api";
-import {
-  getCheckInStatus,
-  isLateCheckIn,
-  LATE_STATUS,
-  ON_TIME_STATUS,
-} from "../utils/checkInStatus";
 import { getLocalDateInputValue } from "../utils/date";
+
+const ON_TIME_STATUS = "\u2705";
+const LATE_STATUS = "\u274C";
 
 function StatCard({ label, value }: { label: string; value: number | string }) {
   return (
@@ -60,6 +57,14 @@ function formatDuration(totalWorkedMinutes: number) {
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
   return "Failed to load dashboard data.";
+}
+
+function getClassStatusIcon(
+  status: TodaySummaryEmployee["classAttendanceStatus"],
+) {
+  if (status === "late") return LATE_STATUS;
+  if (status === "on-time") return ON_TIME_STATUS;
+  return "";
 }
 
 export default function Dashboard() {
@@ -145,8 +150,8 @@ export default function Dashboard() {
   const loading = summaryLoading || employeesLoading;
   const error = summaryError ?? employeesError;
   const summaryEmployees = summary?.employees ?? [];
-  const lateCount = summaryEmployees.filter((employee) =>
-    isLateCheckIn(employee.checkIn),
+  const lateCount = summaryEmployees.filter(
+    (employee) => employee.classAttendanceStatus === "late",
   ).length;
 
   return (
@@ -295,7 +300,9 @@ export default function Dashboard() {
             <tbody>
               {summaryEmployees.map(
                 (employee: TodaySummaryEmployee, index: number) => {
-                  const checkInStatus = getCheckInStatus(employee.checkIn);
+                  const checkInStatus = getClassStatusIcon(
+                    employee.classAttendanceStatus,
+                  );
                   const statusColor =
                     checkInStatus === LATE_STATUS
                       ? "#b91c1c"
@@ -336,7 +343,7 @@ export default function Dashboard() {
                           color: "#111",
                         }}
                       >
-                        {checkInStatus
+                        {checkInStatus && employee.hasScheduledClass
                           ? `${formatTime(employee.checkIn)} ${checkInStatus}`
                           : formatTime(employee.checkIn)}
                       </td>
@@ -374,7 +381,9 @@ export default function Dashboard() {
                           color: statusColor,
                         }}
                       >
-                        {checkInStatus || "--"}
+                        {employee.hasScheduledClass
+                          ? checkInStatus || "--"
+                          : "--"}
                       </td>
                     </tr>
                   );

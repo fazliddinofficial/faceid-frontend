@@ -25,6 +25,33 @@ export interface Employee {
   createdAt: string;
 }
 
+export type CourseDay =
+  | 'dushanba'
+  | 'seshanba'
+  | 'chorshanba'
+  | 'payshanba'
+  | 'juma'
+  | 'shanba';
+
+export interface Course {
+  _id: string;
+  courseName: string;
+  day: string;
+  startTime: string | undefined;
+  endTime: string | undefined;
+  teacher: Employee;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateCoursePayload {
+  courseName: string;
+  startTime: Date;
+  endTime?: Date;
+  teacher: string;
+  day: CourseDay;
+}
+
 export interface TodaySummaryEmployee {
   employeeNo: string;
   name: string;
@@ -32,7 +59,11 @@ export interface TodaySummaryEmployee {
   checkOut: string | null;
   totalScans: number;
   totalWorkedMinutes: number;
-  isLate?: boolean;
+  hasScheduledClass: boolean;
+  scheduledStartTime: string | null;
+  classAttendanceStatus: 'on-time' | 'late' | null;
+  lateMinutes: number;
+  totalLateMinutes: number;
 }
 
 export interface DailySummary {
@@ -74,3 +105,9 @@ export const getEmployeeAttendance = (employeeNo: string, page = 1, limit = 20) 
 
 export const getEmployees = () =>
   api.get<Employee[]>('/employees/all').then((response) => response.data);
+
+export const createCourse = (payload: CreateCoursePayload) =>
+  api.post<Course>('/courses', payload).then((response) => response.data);
+
+export const getAllCourses = () =>
+  api.get<Course[]>('/courses',).then((response) => response.data);
