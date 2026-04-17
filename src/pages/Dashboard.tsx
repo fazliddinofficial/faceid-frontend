@@ -10,6 +10,45 @@ import {
 } from "../api";
 import { getLocalDateInputValue } from "../utils/date";
 import { calculateAttendanceStatus } from "../utils/attendance";
+import * as XLSX from "xlsx";
+
+function exportTableToExcel(
+  summaryEmployees: TodaySummaryEmployee[],
+  getStatusForEmployee: (e: TodaySummaryEmployee) => {
+    status: "on-time" | "late" | null;
+    scheduledTimes: string[];
+  },
+  date: string,
+) {
+  const rows = summaryEmployees.map((employee) => {
+    const { status } = getStatusForEmployee(employee);
+    const onTime =
+      employee.classAttendanceStatus === "late"
+        ? "Late"
+        : status === "on-time"
+          ? "On Time"
+          : "--";
+
+    return {
+      "Employee No": employee.employeeNo,
+      Name: employee.name,
+      "Check In": formatTime(employee.checkIn),
+      "Check Out": formatTime(employee.checkOut),
+      "Late Minutes": formatDuration(employee.lateMinutes),
+      "Total Scans": employee.totalScans,
+      "On Time": onTime,
+      Punishment:
+        employee.lateMinutes > 0 ? `${employee.lateMinutes * 2000} sum` : "--",
+    };
+  });
+
+  const worksheet = XLSX.utils.json_to_sheet(rows);
+  worksheet["!cols"] = Object.keys(rows[0] || {}).map(() => ({ wch: 18 }));
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Summary");
+  XLSX.writeFile(workbook, `attendance-${date}.xlsx`);
+}
 
 const ON_TIME_STATUS = "\u2705";
 const LATE_STATUS = "\u274C";
@@ -256,11 +295,39 @@ export default function Dashboard() {
         }}
       >
         <div
-          style={{ padding: "16px 24px", borderBottom: "1px solid #e5e5e5" }}
+          style={{
+            padding: "16px 24px",
+            borderBottom: "1px solid #e5e5e5",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
         >
           <span style={{ fontWeight: 500, fontSize: "15px", color: "#111" }}>
             Today's summary
           </span>
+          <button
+            onClick={() =>
+              exportTableToExcel(summaryEmployees, getStatusForEmployee, date)
+            }
+            disabled={summaryEmployees.length === 0 || loading}
+            style={{
+              background: "#111",
+              color: "#fff",
+              border: "none",
+              borderRadius: "8px",
+              padding: "8px 16px",
+              fontSize: "13px",
+              fontWeight: 500,
+              cursor:
+                summaryEmployees.length === 0 || loading
+                  ? "not-allowed"
+                  : "pointer",
+              opacity: summaryEmployees.length === 0 || loading ? 0.4 : 1,
+            }}
+          >
+            ⬇ Download Excel
+          </button>
         </div>
 
         {error ? (
@@ -329,8 +396,7 @@ export default function Dashboard() {
             <tbody>
               {summaryEmployees.map(
                 (employee: TodaySummaryEmployee, index: number) => {
-                  const { status } =
-                    getStatusForEmployee(employee);
+                  const { status } = getStatusForEmployee(employee);
                   const checkInStatus =
                     employee.classAttendanceStatus === "late"
                       ? LATE_STATUS
