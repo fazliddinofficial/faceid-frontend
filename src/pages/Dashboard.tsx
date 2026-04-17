@@ -329,7 +329,7 @@ export default function Dashboard() {
             <tbody>
               {summaryEmployees.map(
                 (employee: TodaySummaryEmployee, index: number) => {
-                  const { status, scheduledTimes } =
+                  const { status } =
                     getStatusForEmployee(employee);
                   const checkInStatus =
                     employee.classAttendanceStatus === "late"
