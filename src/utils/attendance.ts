@@ -1,4 +1,4 @@
-import { type Course, type Employee, type TodaySummaryEmployee } from "../api";
+import { type Course, type TodaySummaryEmployee } from "../api";
 
 // Day mapping: 0=Sunday, 1=Monday, ... 6=Saturday
 const DAY_NAMES = ['shanba', 'dushanba', 'seshanba', 'chorshanba', 'payshanba', 'juma', 'shanba', 'odd', 'even', 'all'];
