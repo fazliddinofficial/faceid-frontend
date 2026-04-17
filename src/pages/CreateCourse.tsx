@@ -170,9 +170,9 @@ export default function CreateCourse() {
       const createdCourse = await createCourse(payload);
 
       setForm(getInitialFormState());
-      setSuccessMessage(
-        `Course "${createdCourse.courseName}" created successfully.`,
-      );
+      if (createdCourse.status === 201) {
+        setSuccessMessage(`Course created successfully.`);
+      }
     } catch (error) {
       setError(getErrorMessage(error));
     } finally {

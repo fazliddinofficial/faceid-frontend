@@ -114,7 +114,7 @@ export const getEmployees = () =>
   api.get<Employee[]>('/employees/all').then((response) => response.data);
 
 export const createCourse = (payload: CreateCoursePayload) =>
-  api.post<Course>('/courses', payload).then((response) => response.data);
+  api.post<{ status: number }>('/courses', payload).then((response) => response.data);
 
 export const getAllCourses = () =>
   api.get<Course[]>('/courses',).then((response) => response.data);
