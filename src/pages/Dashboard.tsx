@@ -2,11 +2,14 @@ import { type ChangeEvent, useEffect, useState } from "react";
 import {
   getEmployees,
   getSummary,
+  getCourses,
+  type Course,
   type DailySummary,
   type Employee,
   type TodaySummaryEmployee,
 } from "../api";
 import { getLocalDateInputValue } from "../utils/date";
+import { calculateAttendanceStatus } from "../utils/attendance";
 
 const ON_TIME_STATUS = "\u2705";
 const LATE_STATUS = "\u274C";
@@ -59,19 +62,13 @@ function getErrorMessage(error: unknown) {
   return "Failed to load dashboard data.";
 }
 
-function getClassStatusIcon(
-  status: TodaySummaryEmployee["classAttendanceStatus"],
-) {
-  if (status === "late") return LATE_STATUS;
-  if (status === "on-time") return ON_TIME_STATUS;
-  return "";
-}
-
 export default function Dashboard() {
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [employeesLoading, setEmployeesLoading] = useState(true);
+  const [coursesLoading, setCoursesLoading] = useState(true);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [employeesError, setEmployeesError] = useState<string | null>(null);
   const [date, setDate] = useState(() => getLocalDateInputValue());
@@ -82,7 +79,7 @@ export default function Dashboard() {
     async function loadSummary() {
       try {
         const nextSummary = await getSummary(date);
-        console.log(nextSummary);
+
         if (cancelled) return;
 
         setSummary(nextSummary);
@@ -135,10 +132,41 @@ export default function Dashboard() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCourses() {
+      try {
+        const nextCourses = await getCourses();
+        if (cancelled) return;
+
+        setCourses(nextCourses);
+      } catch (error) {
+        if (cancelled) return;
+
+        setCourses([]);
+      } finally {
+        if (!cancelled) {
+          setCoursesLoading(false);
+        }
+      }
+    }
+
+    void loadCourses();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   function handleDateChange(event: ChangeEvent<HTMLInputElement>) {
     setDate(event.target.value);
     setSummaryLoading(true);
     setSummaryError(null);
+  }
+
+  function getStatusForEmployee(employee: TodaySummaryEmployee) {
+    return calculateAttendanceStatus(employee, courses, date);
   }
 
   const checkedIn =
@@ -147,11 +175,11 @@ export default function Dashboard() {
     summary?.employees.filter((employee) => employee.checkOut).length ?? 0;
   const total = employees.length;
   const notYetIn = Math.max(total - checkedIn, 0);
-  const loading = summaryLoading || employeesLoading;
+  const loading = summaryLoading || employeesLoading || coursesLoading;
   const error = summaryError ?? employeesError;
   const summaryEmployees = summary?.employees ?? [];
   const lateCount = summaryEmployees.filter(
-    (employee) => employee.classAttendanceStatus === "late",
+    (employee) => getStatusForEmployee(employee).status === "late",
   ).length;
 
   return (
@@ -277,9 +305,10 @@ export default function Dashboard() {
                   "Name",
                   "Check In",
                   "Check Out",
-                  "Total Hours",
+                  "Late minutes",
                   "Total Scans",
                   "On time",
+                  "Punishment",
                 ].map((heading) => (
                   <th
                     key={heading}
@@ -300,13 +329,18 @@ export default function Dashboard() {
             <tbody>
               {summaryEmployees.map(
                 (employee: TodaySummaryEmployee, index: number) => {
-                  const checkInStatus = getClassStatusIcon(
-                    employee.classAttendanceStatus,
-                  );
+                  const { status, scheduledTimes } =
+                    getStatusForEmployee(employee);
+                  const checkInStatus =
+                    employee.classAttendanceStatus === "late"
+                      ? LATE_STATUS
+                      : status === "on-time"
+                        ? ON_TIME_STATUS
+                        : "";
                   const statusColor =
-                    checkInStatus === LATE_STATUS
+                    status === "late"
                       ? "#b91c1c"
-                      : checkInStatus === ON_TIME_STATUS
+                      : status === "on-time"
                         ? "#16a34a"
                         : "#888";
 
@@ -343,9 +377,7 @@ export default function Dashboard() {
                           color: "#111",
                         }}
                       >
-                        {checkInStatus && employee.hasScheduledClass
-                          ? `${formatTime(employee.checkIn)} ${checkInStatus}`
-                          : formatTime(employee.checkIn)}
+                        {[formatTime(employee.checkIn), checkInStatus]}
                       </td>
                       <td
                         style={{
@@ -363,7 +395,7 @@ export default function Dashboard() {
                           color: "#111",
                         }}
                       >
-                        {formatDuration(employee.totalWorkedMinutes)}
+                        {formatDuration(employee.lateMinutes)}
                       </td>
                       <td
                         style={{
@@ -381,9 +413,16 @@ export default function Dashboard() {
                           color: statusColor,
                         }}
                       >
-                        {employee.hasScheduledClass
-                          ? checkInStatus || "--"
-                          : "--"}
+                        {checkInStatus || "--"}
+                      </td>
+                      <td
+                        style={{
+                          padding: "14px 24px",
+                          fontSize: "13px",
+                          color: "black",
+                        }}
+                      >
+                        {employee.lateMinutes * 2000 + " " + "sum"}
                       </td>
                     </tr>
                   );

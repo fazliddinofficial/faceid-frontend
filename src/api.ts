@@ -31,7 +31,11 @@ export type CourseDay =
   | 'chorshanba'
   | 'payshanba'
   | 'juma'
-  | 'shanba';
+  | 'shanba'
+  | 'odd'
+  | 'even'
+  | 'all'
+  ;
 
 export interface Course {
   _id: string;
@@ -97,6 +101,9 @@ export const getRange = (startDate: string, endDate: string) =>
   api
     .get<RangeAttendance>('/attendance/range', { params: { startDate, endDate } })
     .then((response) => response.data);
+
+export const getCourses = () =>
+  api.get<Course[]>('/courses').then((response) => response.data);
 
 export const getEmployeeAttendance = (employeeNo: string, page = 1, limit = 20) =>
   api

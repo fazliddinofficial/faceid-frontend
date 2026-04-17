@@ -1,24 +1,27 @@
-import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react';
+import { type ChangeEvent, type FormEvent, useEffect, useState } from "react";
 import {
   createCourse,
   getEmployees,
   type CourseDay,
   type CreateCoursePayload,
   type Employee,
-} from '../api';
-import './CreateCourse.css';
+} from "../api";
+import "./CreateCourse.css";
 
 const dayOptions: Array<{ value: CourseDay; label: string }> = [
-  { value: 'dushanba', label: 'Dushanba' },
-  { value: 'seshanba', label: 'Seshanba' },
-  { value: 'chorshanba', label: 'Chorshanba' },
-  { value: 'payshanba', label: 'Payshanba' },
-  { value: 'juma', label: 'Juma' },
-  { value: 'shanba', label: 'Shanba' },
+  { value: "dushanba", label: "Dushanba" },
+  { value: "seshanba", label: "Seshanba" },
+  { value: "chorshanba", label: "Chorshanba" },
+  { value: "payshanba", label: "Payshanba" },
+  { value: "juma", label: "Juma" },
+  { value: "shanba", label: "Shanba" },
+  { value: "odd", label: "Odd" },
+  { value: "even", label: "Even" },
+  { value: "all", label: "All" },
 ];
 
 const hourOptions = Array.from({ length: 24 }, (_, hour) => {
-  const value = `${String(hour).padStart(2, '0')}:00`;
+  const value = `${String(hour).padStart(2, "0")}:00`;
   return { value, label: value };
 });
 
@@ -32,27 +35,27 @@ interface CreateCourseFormState {
 
 function getErrorMessage(error: unknown) {
   if (
-    typeof error === 'object' &&
+    typeof error === "object" &&
     error !== null &&
-    'response' in error &&
-    typeof error.response === 'object' &&
+    "response" in error &&
+    typeof error.response === "object" &&
     error.response !== null &&
-    'data' in error.response
+    "data" in error.response
   ) {
     const responseData = error.response.data;
 
     if (
-      typeof responseData === 'object' &&
+      typeof responseData === "object" &&
       responseData !== null &&
-      'message' in responseData
+      "message" in responseData
     ) {
       const message = responseData.message;
 
       if (Array.isArray(message)) {
-        return message.join(', ');
+        return message.join(", ");
       }
 
-      if (typeof message === 'string') {
+      if (typeof message === "string") {
         return message;
       }
     }
@@ -62,21 +65,21 @@ function getErrorMessage(error: unknown) {
     return error.message;
   }
 
-  return 'Failed to create course.';
+  return "Failed to create course.";
 }
 
 function getInitialFormState(): CreateCourseFormState {
   return {
-    courseName: '',
-    startTime: '',
-    endTime: '',
-    teacher: '',
-    day: 'dushanba',
+    courseName: "",
+    startTime: "",
+    endTime: "",
+    teacher: "",
+    day: "dushanba",
   };
 }
 
 function buildCourseTimeDate(value: string) {
-  const [hours, minutes] = value.split(':').map(Number);
+  const [hours, minutes] = value.split(":").map(Number);
 
   return new Date(Date.UTC(2000, 0, 1, hours, minutes, 0, 0));
 }
@@ -148,7 +151,7 @@ export default function CreateCourse() {
 
     try {
       if (form.endTime && form.endTime <= form.startTime) {
-        setError('End time must be later than start time.');
+        setError("End time must be later than start time.");
         setSubmitting(false);
         return;
       }
@@ -167,7 +170,9 @@ export default function CreateCourse() {
       const createdCourse = await createCourse(payload);
 
       setForm(getInitialFormState());
-      setSuccessMessage(`Course "${createdCourse.courseName}" created successfully.`);
+      setSuccessMessage(
+        `Course "${createdCourse.courseName}" created successfully.`,
+      );
     } catch (error) {
       setError(getErrorMessage(error));
     } finally {
@@ -239,7 +244,7 @@ export default function CreateCourse() {
                   required
                 >
                   <option value="">
-                    {loadingTeachers ? 'Loading teachers...' : 'Select teacher'}
+                    {loadingTeachers ? "Loading teachers..." : "Select teacher"}
                   </option>
                   {teachers.map((teacher) => (
                     <option key={teacher._id} value={teacher._id}>
@@ -251,7 +256,9 @@ export default function CreateCourse() {
 
               <label className="create-course-field">
                 <span>Start time</span>
-                <small className="create-course-hint">24-hour format, hour only</small>
+                <small className="create-course-hint">
+                  24-hour format, hour only
+                </small>
                 <select
                   className="create-course-input"
                   name="startTime"
@@ -270,11 +277,13 @@ export default function CreateCourse() {
 
               <label className="create-course-field create-course-field--full">
                 <span>End time</span>
-                <small className="create-course-hint">24-hour format, hour only</small>
+                <small className="create-course-hint">
+                  24-hour format, hour only
+                </small>
                 <select
                   className="create-course-input"
                   name="endTime"
-                  value={form.endTime ?? ''}
+                  value={form.endTime ?? ""}
                   onChange={handleFieldChange}
                 >
                   <option value="">Select end hour</option>
@@ -287,18 +296,24 @@ export default function CreateCourse() {
               </label>
             </div>
 
-            {error ? <div className="create-course-message error">{error}</div> : null}
+            {error ? (
+              <div className="create-course-message error">{error}</div>
+            ) : null}
             {successMessage ? (
-              <div className="create-course-message success">{successMessage}</div>
+              <div className="create-course-message success">
+                {successMessage}
+              </div>
             ) : null}
 
             <div className="create-course-actions">
               <button
                 className="create-course-button"
                 type="submit"
-                disabled={submitting || loadingTeachers || teachers.length === 0}
+                disabled={
+                  submitting || loadingTeachers || teachers.length === 0
+                }
               >
-                {submitting ? 'Creating...' : 'Create course'}
+                {submitting ? "Creating..." : "Create course"}
               </button>
             </div>
           </form>
@@ -321,7 +336,9 @@ export default function CreateCourse() {
             </div>
             <div className="create-course-side-item">
               <span>Teachers loaded</span>
-              <strong>{loadingTeachers ? 'Loading...' : teachers.length}</strong>
+              <strong>
+                {loadingTeachers ? "Loading..." : teachers.length}
+              </strong>
             </div>
           </div>
         </aside>
