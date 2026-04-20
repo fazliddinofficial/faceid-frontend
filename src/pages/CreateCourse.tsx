@@ -1,4 +1,4 @@
-import { type ChangeEvent, type FormEvent, useEffect, useState } from "react";
+import { type ChangeEvent, useEffect, useState } from "react";
 import {
   createCourse,
   getEmployees,
@@ -143,7 +143,7 @@ export default function CreateCourse() {
     }
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: ChangeEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
     setError(null);
