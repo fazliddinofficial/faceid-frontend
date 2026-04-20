@@ -12,6 +12,8 @@ import { getLocalDateInputValue } from "../utils/date";
 import { calculateAttendanceStatus } from "../utils/attendance";
 import * as XLSX from "xlsx";
 
+const punishment: number = import.meta.env.VITE_MINUT_PUNISHMENT;
+
 function exportTableToExcel(
   summaryEmployees: TodaySummaryEmployee[],
   getStatusForEmployee: (e: TodaySummaryEmployee) => {
@@ -488,7 +490,7 @@ export default function Dashboard() {
                           color: "black",
                         }}
                       >
-                        {employee.lateMinutes * 2000 + " " + "sum"}
+                        {employee.lateMinutes * punishment + " " + "sum"}
                       </td>
                     </tr>
                   );
