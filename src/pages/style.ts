@@ -121,4 +121,15 @@ export const styles = {
     color: "#9ca3af",
     fontFamily: "monospace",
   },
+  button: {
+    backgroundColor: "#E24B4A",
+    color: "#ffffff",
+    border: "none",
+    padding: "8px 18px",
+    margin: "10px 0px",
+    borderRadius: "8px",
+    fontSize: "14px",
+    cursor: "pointer",
+    transition: "background 0.15s, transform 0.1s",
+  }
 } as const;

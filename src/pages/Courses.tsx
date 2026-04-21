@@ -1,14 +1,10 @@
 import { useEffect, useState } from "react";
-import { getAllCourses, type Course } from "../api";
+import { deleteCourseById, getAllCourses, type Course } from "../api";
 import { styles } from "./style";
 
 const formatTime = (iso: string | undefined) => {
   if (!iso) return "--:--";
-
-  // already a short time string like "10:00" or "10:00:00"
   if (/^\d{2}:\d{2}/.test(iso)) return iso.slice(0, 5);
-
-  // full ISO string
   return new Date(iso).toISOString().slice(11, 16);
 };
 
@@ -25,13 +21,19 @@ function CourseList() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleDelete = async (id = "") => {
+    await deleteCourseById(id);
+    setRefreshKey((prev) => prev + 1);
+  };
 
   useEffect(() => {
     getAllCourses()
       .then(setCourses)
       .catch((err) => setError(err?.message ?? "Failed to load courses"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [refreshKey]);
 
   if (loading) return <p style={styles.courseLabel}>Loading...</p>;
   if (error) return <p style={{ color: "#dc2626" }}>{error}</p>;
@@ -92,6 +94,9 @@ function CourseList() {
             <span style={{ ...styles.rowLabel, fontSize: 12 }}>ID</span>
             <span style={styles.idText}>{data._id}</span>
           </div>
+          <button onClick={() => handleDelete(data._id)} style={styles.button}>
+            Delete
+          </button>
         </div>
       ))}
     </div>

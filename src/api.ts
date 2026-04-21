@@ -118,3 +118,5 @@ export const createCourse = (payload: CreateCoursePayload) =>
 
 export const getAllCourses = () =>
   api.get<Course[]>('/courses',).then((response) => response.data);
+
+export const deleteCourseById = (id: string) => api.delete(`/courses/${id}`);
