@@ -120,6 +120,7 @@ export default function Dashboard() {
     async function loadSummary() {
       try {
         const nextSummary = await getSummary(date);
+        console.log(nextSummary.employees[2]);
 
         if (cancelled) return;
 
@@ -399,12 +400,17 @@ export default function Dashboard() {
               {summaryEmployees.map(
                 (employee: TodaySummaryEmployee, index: number) => {
                   const { status } = getStatusForEmployee(employee);
-                  const checkInStatus =
-                    employee.classAttendanceStatus === "late"
-                      ? LATE_STATUS
-                      : status === "on-time"
-                        ? ON_TIME_STATUS
-                        : "";
+                  // const checkInStatus = employee.classAttendanceStatus === "late"  ? LATE_STATUS : status === "on-time" ? ON_TIME_STATUS : "";
+                  const checkInStatus = (status: string | null) => {
+                    if (status === "on-time") {
+                      return ON_TIME_STATUS;
+                    }
+                    if (status === null) {
+                      return "";
+                    } else {
+                      return LATE_STATUS;
+                    }
+                  };
                   const statusColor =
                     status === "late"
                       ? "#b91c1c"
@@ -445,7 +451,10 @@ export default function Dashboard() {
                           color: "#111",
                         }}
                       >
-                        {[formatTime(employee.checkIn), checkInStatus]}
+                        {[
+                          formatTime(employee.checkIn),
+                          checkInStatus(employee.classAttendanceStatus),
+                        ]}
                       </td>
                       <td
                         style={{
@@ -481,7 +490,7 @@ export default function Dashboard() {
                           color: statusColor,
                         }}
                       >
-                        {checkInStatus || "--"}
+                        {checkInStatus(employee.classAttendanceStatus) || "--"}
                       </td>
                       <td
                         style={{
