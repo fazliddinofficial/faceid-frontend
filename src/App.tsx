@@ -3,6 +3,7 @@ import Dashboard from "./pages/Dashboard";
 import AttendanceList from "./pages/AttendanceList";
 import CreateCourse from "./pages/CreateCourse";
 import Course from "./pages/Courses";
+import FaceDetector from "./pages/FaceApi";
 
 export default function App() {
   return (
@@ -77,6 +78,18 @@ export default function App() {
         >
           All courses
         </NavLink>
+        <NavLink
+          to="/face"
+          style={({ isActive }) => ({
+            textDecoration: "none",
+            fontSize: "14px",
+            color: isActive ? "#111" : "#888",
+            borderBottom: isActive ? "2px solid #111" : "2px solid transparent",
+            paddingBottom: "2px",
+          })}
+        >
+          Face
+        </NavLink>
       </nav>
 
       {/* Pages */}
@@ -86,6 +99,7 @@ export default function App() {
           <Route path="/attendance" element={<AttendanceList />} />
           <Route path="/courses/new" element={<CreateCourse />} />
           <Route path="/courses/all" element={<Course />} />
+          <Route path="/face" element={<FaceDetector />} />
         </Routes>
       </main>
     </div>

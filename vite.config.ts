@@ -9,5 +9,11 @@ export default defineConfig({
     allowedHosts: [
       'c4e0-84-54-73-251.ngrok-free.app'
     ]
+  },
+  optimizeDeps: {
+    exclude: ['face-api.js']
+  },
+  build: {
+    sourcemap: false
   }
 })
