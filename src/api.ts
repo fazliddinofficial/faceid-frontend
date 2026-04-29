@@ -23,6 +23,7 @@ export interface Employee {
   verifyMode: string;
   isActive: boolean;
   createdAt: string;
+  descriptor: number[]
 }
 
 export type CourseDay =
@@ -120,3 +121,6 @@ export const getAllCourses = () =>
   api.get<Course[]>('/courses',).then((response) => response.data);
 
 export const deleteCourseById = (id: string) => api.delete(`/courses/${id}`);
+
+export const addFaceDetection = (data: { des: number[], employeeNo: string }) =>
+  api.post('/employees/add/face', data).then((response) => response.data);
