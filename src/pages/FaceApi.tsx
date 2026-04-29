@@ -7,6 +7,7 @@ const FaceDetector: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [name, setName] = useState("");
+  const [employeeNum, setEmployeeNum] = useState("");
 
   useEffect(() => {
     const loadModels = async () => {
@@ -101,7 +102,7 @@ const FaceDetector: React.FC = () => {
     };
 
     employees.forEach((v) => {
-      if (v.employeeNo == "8") {
+      if (v.employeeNo == employeeNum) {
         console.log("Saved descriptor length:", v.descriptor.length);
         const a = compareDescriptors(detection.descriptor, v.descriptor);
         console.log(a);
@@ -189,8 +190,8 @@ const FaceDetector: React.FC = () => {
           <input
             type="text"
             placeholder="Employee number to check"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={employeeNum}
+            onChange={(e) => setEmployeeNum(e.target.value)}
             style={{
               flex: "1 1 200px",
               padding: "10px 12px",
