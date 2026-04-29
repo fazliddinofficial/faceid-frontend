@@ -110,58 +110,74 @@ const FaceDetector: React.FC = () => {
   };
 
   return (
-    <div>
-      <div style={{ position: "relative" }}>
+    <div style={{ maxWidth: 720, margin: "0 auto" }}>
+      {/* Video */}
+      <div
+        style={{
+          position: "relative",
+          width: "100%",
+          borderRadius: 12,
+          overflow: "hidden",
+          background: "#000",
+        }}
+      >
         <video
           ref={videoRef}
-          width={720}
-          height={560}
+          style={{ width: "100%", height: "auto", display: "block" }}
           autoPlay
           muted
           onPlay={handleVideoPlay}
         />
         <canvas
           ref={canvasRef}
-          style={{ position: "absolute", top: 0, left: 0 }}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+          }}
         />
       </div>
 
-      {/* Register controls */}
+      {/* Controls */}
       <div
         style={{
-          marginTop: 24,
+          marginTop: 20,
           display: "flex",
           flexDirection: "column",
-          gap: 16,
+          gap: 12,
         }}
       >
         {/* Register */}
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <input
             type="text"
             placeholder="Employee number to register"
             value={name}
             onChange={(e) => setName(e.target.value)}
             style={{
-              flex: 1,
-              padding: "8px 12px",
+              flex: "1 1 200px",
+              padding: "10px 12px",
               borderRadius: 8,
               border: "0.5px solid #ccc",
               fontSize: 14,
+              minWidth: 0,
             }}
           />
           <button
             onClick={handleRegister}
             disabled={!modelsLoaded}
             style={{
-              padding: "8px 16px",
+              padding: "10px 18px",
               borderRadius: 8,
-              border: "0.5px solid #ccc",
+              border: "none",
               background: modelsLoaded ? "#1D9E75" : "#ccc",
               color: "#fff",
               cursor: modelsLoaded ? "pointer" : "not-allowed",
               fontSize: 14,
               fontWeight: 500,
+              whiteSpace: "nowrap",
             }}
           >
             Register Face
@@ -169,32 +185,34 @@ const FaceDetector: React.FC = () => {
         </div>
 
         {/* Recognize */}
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <input
             type="text"
             placeholder="Employee number to check"
             value={name}
             onChange={(e) => setName(e.target.value)}
             style={{
-              flex: 1,
-              padding: "8px 12px",
+              flex: "1 1 200px",
+              padding: "10px 12px",
               borderRadius: 8,
               border: "0.5px solid #ccc",
               fontSize: 14,
+              minWidth: 0,
             }}
           />
           <button
             onClick={handleRecognize}
             disabled={!modelsLoaded}
             style={{
-              padding: "8px 16px",
+              padding: "10px 18px",
               borderRadius: 8,
-              border: "0.5px solid #ccc",
+              border: "none",
               background: modelsLoaded ? "#378ADD" : "#ccc",
               color: "#fff",
               cursor: modelsLoaded ? "pointer" : "not-allowed",
               fontSize: 14,
               fontWeight: 500,
+              whiteSpace: "nowrap",
             }}
           >
             Check Attendance
