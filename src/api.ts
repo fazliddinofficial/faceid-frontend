@@ -114,6 +114,9 @@ export const getEmployeeAttendance = (employeeNo: string, page = 1, limit = 20) 
 export const getEmployees = () =>
   api.get<Employee[]>('/employees/all').then((response) => response.data);
 
+export const getEmployeeByNum = (employeeNo: string) =>
+  api.get<Employee>(`/employees/${employeeNo}`).then((response) => response.data);
+
 export const createCourse = (payload: CreateCoursePayload) =>
   api.post<{ status: number }>('/courses', payload).then((response) => response.data);
 

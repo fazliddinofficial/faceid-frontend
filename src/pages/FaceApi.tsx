@@ -1,13 +1,12 @@
 import * as faceapi from "face-api.js";
 import { useEffect, useRef, useState } from "react";
-import { addFaceDetection, getEmployees } from "../api";
+import { addFaceDetection, getEmployeeByNum } from "../api";
 
 const FaceDetector: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [name, setName] = useState("");
-  const [employeeNum, setEmployeeNum] = useState("");
 
   useEffect(() => {
     const loadModels = async () => {
@@ -35,7 +34,12 @@ const FaceDetector: React.FC = () => {
   const handleVideoPlay = () => {
     const video = videoRef.current!;
     const canvas = canvasRef.current!;
-    const displaySize = { width: video.width, height: video.height };
+
+    const displaySize = {
+      width: video.videoWidth,
+      height: video.videoHeight,
+    };
+
     faceapi.matchDimensions(canvas, displaySize);
 
     setInterval(async () => {
@@ -44,6 +48,7 @@ const FaceDetector: React.FC = () => {
         .withFaceLandmarks();
 
       const resized = faceapi.resizeResults(detections, displaySize);
+
       const ctx = canvas.getContext("2d")!;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       faceapi.draw.drawDetections(canvas, resized);
@@ -78,7 +83,7 @@ const FaceDetector: React.FC = () => {
   };
 
   const handleRecognize = async () => {
-    const employees = await getEmployees();
+    const employee = await getEmployeeByNum(name);
 
     const video = videoRef.current!;
     const detection = await faceapi
@@ -101,13 +106,11 @@ const FaceDetector: React.FC = () => {
       return distance < threshold;
     };
 
-    employees.forEach((v) => {
-      if (v.employeeNo == employeeNum) {
-        console.log("Saved descriptor length:", v.descriptor.length);
-        const a = compareDescriptors(detection.descriptor, v.descriptor);
-        console.log(a);
-      }
-    });
+    if (employee.name == name) {
+      console.log("Saved descriptor length:", employee.descriptor.length);
+      const a = compareDescriptors(detection.descriptor, employee.descriptor);
+      console.log(a);
+    }
   };
 
   return (
@@ -190,8 +193,8 @@ const FaceDetector: React.FC = () => {
           <input
             type="text"
             placeholder="Employee number to check"
-            value={employeeNum}
-            onChange={(e) => setEmployeeNum(e.target.value)}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             style={{
               flex: "1 1 200px",
               padding: "10px 12px",
