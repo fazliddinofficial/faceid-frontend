@@ -1,6 +1,10 @@
 import * as faceapi from "face-api.js";
 import { useEffect, useRef, useState } from "react";
-import { addFaceDetection, getEmployeeByNum } from "../api";
+import {
+  addFaceDetection,
+  checkAttendanceByFace,
+  getEmployeeByNum,
+} from "../api";
 
 const FaceDetector: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -106,10 +110,18 @@ const FaceDetector: React.FC = () => {
       return distance < threshold;
     };
 
-    if (employee.name == name) {
-      console.log("Saved descriptor length:", employee.descriptor.length);
-      const a = compareDescriptors(detection.descriptor, employee.descriptor);
-      console.log(a);
+    const isSame = compareDescriptors(
+      detection.descriptor,
+      employee.descriptor,
+    );
+
+    if (isSame) {
+      try {
+        const data = await checkAttendanceByFace(name);
+        alert(data.message);
+      } catch (error: any) {
+        alert(error.response?.data?.message);
+      }
     }
   };
 

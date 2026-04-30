@@ -90,6 +90,14 @@ export interface RangeAttendance {
   records: AttendanceRecord[];
 }
 
+interface AttendanceResult {
+  isLate: boolean;
+  minutesLate: number;
+  arrivedAt: Date;
+  status: "on_time" | "late" | "missed";
+  message?: string;
+}
+
 export const getToday = () =>
   api.get<TodayAttendance>('/attendance/today').then((response) => response.data);
 
@@ -127,3 +135,6 @@ export const deleteCourseById = (id: string) => api.delete(`/courses/${id}`);
 
 export const addFaceDetection = (data: { des: number[], employeeNo: string }) =>
   api.post('/employees/add/face', data).then((response) => response.data);
+
+export const checkAttendanceByFace = (eNum: string) =>
+  api.post<AttendanceResult>('/attendance/check/face', { eNum }).then((response) => response.data);
