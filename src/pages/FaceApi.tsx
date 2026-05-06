@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   addFaceDetection,
   checkAttendanceByFace,
+  checkTeacherAttendance,
   getEmployeeByNum,
 } from "../api";
 
@@ -118,6 +119,7 @@ const FaceDetector: React.FC = () => {
     if (isSame) {
       try {
         const data = await checkAttendanceByFace(name);
+        await checkTeacherAttendance(name);
         alert(data.message);
       } catch (error: any) {
         alert(error.response?.data?.message);

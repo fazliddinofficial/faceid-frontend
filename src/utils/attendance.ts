@@ -9,12 +9,10 @@ export function getDayName(date: string): string {
 }
 
 export function timeToMinutes(timeString: string): number {
-  // Handle both "HH:mm" format and ISO date format
   let timeOnly = timeString;
 
-  // If it's an ISO datetime string, extract the time part
   if (timeString.includes('T')) {
-    timeOnly = timeString.split('T')[1].substring(0, 5); // "HH:mm"
+    timeOnly = timeString.split('T')[1].substring(0, 5); 
   }
 
   const [hours, minutes] = timeOnly.split(':').map(Number);
@@ -32,7 +30,6 @@ export function calculateAttendanceStatus(
 
   const dayName = getDayName(date);
 
-  // Find all courses scheduled for this day
   const scheduledCourses = courses.filter(
     course => course.day.toLowerCase() === dayName.toLowerCase()
   );
@@ -44,7 +41,6 @@ export function calculateAttendanceStatus(
   const checkInTime = employee.checkIn.split('T')[1].substring(0, 5);
   const checkInMinutes = timeToMinutes(checkInTime);
 
-  // Build array of scheduled times (formatted as HH:mm strings)
   const scheduledTimes = scheduledCourses
     .filter(course => course.startTime)
     .map(course => {
@@ -55,7 +51,6 @@ export function calculateAttendanceStatus(
       return formatted;
     });
 
-  // Check if employee is late: late if check-in is after ANY scheduled start time
   const isLate = scheduledTimes.some(startTime => {
     const startMinutes = timeToMinutes(startTime);
     const isLateForThis = checkInMinutes > startMinutes;

@@ -138,3 +138,7 @@ export const addFaceDetection = (data: { des: number[], employeeNo: string }) =>
 
 export const checkAttendanceByFace = (eNum: string) =>
   api.post<AttendanceResult>('/attendance/check/face', { eNum }).then((response) => response.data);
+
+export const checkTeacherAttendance = (eNum: string) => {
+  api.post('/attendance/check/face', { eNum }).then((response) => response.data);
+}
