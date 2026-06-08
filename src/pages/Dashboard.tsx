@@ -270,7 +270,7 @@ export default function Dashboard() {
           display: "flex",
           gap: "16px",
           marginBottom: "32px",
-          flexWrap: "nowrap",
+          flexWrap: "wrap",
         }}
       >
         <StatCard
@@ -294,7 +294,7 @@ export default function Dashboard() {
           background: "#fff",
           border: "1px solid #e5e5e5",
           borderRadius: "12px",
-          overflow: "hidden",
+          overflowX: "scroll",
         }}
       >
         <div
@@ -362,12 +362,19 @@ export default function Dashboard() {
               textAlign: "center",
               color: "#888",
               fontSize: "14px",
+              overflowX: "auto",
             }}
           >
             No scans recorded for this date
           </div>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              minWidth: "800px",
+            }}
+          >
             <thead>
               <tr style={{ background: "#fafafa" }}>
                 {[
