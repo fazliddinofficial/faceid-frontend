@@ -147,8 +147,13 @@ const FaceDetector: React.FC = () => {
       try {
         const data = await checkAttendanceByFace(name);
         await checkTeacherAttendance(name);
-        alert(data.message);
-        console.log(data);
+        if (data.status === "on_time") {
+          alert("Siz vaqtida keldingiz");
+        } else if (data.status === 'late') {
+          alert(`Siz ${data.minutesLate} daqiqa kech qoldingiz`)
+        }else{
+          alert("Siz dars o'tqazib yubordingiz")
+        }
       } catch (error: any) {
         alert(error.response?.data?.message);
       }
