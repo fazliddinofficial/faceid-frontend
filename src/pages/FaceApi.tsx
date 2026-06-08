@@ -12,6 +12,8 @@ const FaceDetector: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [name, setName] = useState("");
+  const streamRef = useRef<MediaStream | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const loadModels = async () => {
@@ -34,10 +36,24 @@ const FaceDetector: React.FC = () => {
     if (modelsLoaded) startVideo();
   }, [modelsLoaded]);
 
-  const startVideo = () => {
-    navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
+  useEffect(() => {
+    return () => {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
+
+  const startVideo = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      streamRef.current = stream;
       if (videoRef.current) videoRef.current.srcObject = stream;
-    });
+    } catch (err: any) {
+      if (err.name === "NotAllowedError") {
+        alert("Camera permission denied. Please allow camera access.");
+      } else if (err.name === "NotFoundError") {
+        alert("No camera found on this device.");
+      }
+    }
   };
 
   const handleVideoPlay = () => {
@@ -51,7 +67,7 @@ const FaceDetector: React.FC = () => {
 
     faceapi.matchDimensions(canvas, displaySize);
 
-    setInterval(async () => {
+    intervalRef.current = setInterval(async () => {
       const detections = await faceapi
         .detectAllFaces(video, new faceapi.SsdMobilenetv1Options())
         .withFaceLandmarks();
@@ -64,6 +80,13 @@ const FaceDetector: React.FC = () => {
       faceapi.draw.drawFaceLandmarks(canvas, resized);
     }, 100);
   };
+
+  useEffect(() => {
+    return () => {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
 
   const handleRegister = async () => {
     if (!name.trim()) return alert("Enter a number first");
