@@ -6,6 +6,7 @@ import {
   checkTeacherAttendance,
   getEmployeeByNum,
 } from "../api";
+import { isInAllowedArea } from "../utils/checkUserLocation";
 
 const FaceDetector: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -15,6 +16,7 @@ const FaceDetector: React.FC = () => {
   const streamRef = useRef<MediaStream | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isDetecting = useRef(false);
+  const [status, setStatus] = useState("checking");
 
   useEffect(() => {
     const loadModels = async () => {
@@ -78,8 +80,10 @@ const FaceDetector: React.FC = () => {
       if (isDetecting.current) return;
       isDetecting.current = true;
       try {
-        const detections = await faceapi
-          .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions());
+        const detections = await faceapi.detectAllFaces(
+          video,
+          new faceapi.TinyFaceDetectorOptions(),
+        );
 
         const resized = faceapi.resizeResults(detections, displaySize);
 
@@ -171,118 +175,179 @@ const FaceDetector: React.FC = () => {
     }
   };
 
-  return (
-    <div style={{ maxWidth: 720, margin: "0 auto" }}>
-      {/* Video */}
-      <div
-        style={{
-          position: "relative",
-          width: "100%",
-          borderRadius: 12,
-          overflow: "hidden",
-          background: "#000",
-        }}
-      >
-        <video
-          ref={videoRef}
-          style={{ width: "100%", height: "auto", display: "block" }}
-          autoPlay
-          muted
-          onPlay={handleVideoPlay}
-        />
-        <canvas
-          ref={canvasRef}
+  function getUserLocation(): Promise<{
+    lat: number;
+    lon: number;
+  }> {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Geolocation is not supported by your browser."));
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            lat: position.coords.latitude,
+            lon: position.coords.longitude,
+          });
+        },
+        (error) => {
+          reject(new Error(error.message));
+        },
+        { timeout: 10000, maximumAge: 0 },
+      );
+    });
+  }
+
+  async function checkAccess() {
+    try {
+      const { lat, lon } = await getUserLocation();
+      const allowed = isInAllowedArea(lat, lon);
+      console.log(allowed ? "✅ Access granted" : "❌ Access denied");
+      return allowed;
+    } catch (error: any) {
+      console.error("Could not get location:", error.message);
+      return false;
+    }
+  }
+
+  useEffect(() => {
+    checkAccess().then((allowed) => {
+      setStatus(allowed ? "allowed" : "denied");
+    });
+  }, []);
+
+  if (status === "checking") {
+    return (
+      <div>
+        <p>⏳ Checking your location...</p>
+      </div>
+    );
+  }
+
+  if (status === "denied") {
+    return (
+      <div>
+        <p>🚫 Access denied. You are outside the allowed area.</p>
+      </div>
+    );
+  }
+
+  if (status === "allowed") {
+    return (
+      <div style={{ maxWidth: 720, margin: "0 auto" }}>
+        {/* Video */}
+        <div
           style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
+            position: "relative",
             width: "100%",
-            height: "100%",
+            borderRadius: 12,
+            overflow: "hidden",
+            background: "#000",
           }}
-        />
-      </div>
-
-      {/* Controls */}
-      <div
-        style={{
-          marginTop: 20,
-          display: "flex",
-          flexDirection: "column",
-          gap: 12,
-        }}
-      >
-        {/* Register */}
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <input
-            type="text"
-            placeholder="Employee number to register"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+        >
+          <video
+            ref={videoRef}
+            style={{ width: "100%", height: "auto", display: "block" }}
+            autoPlay
+            muted
+            onPlay={handleVideoPlay}
+          />
+          <canvas
+            ref={canvasRef}
             style={{
-              flex: "1 1 200px",
-              padding: "10px 12px",
-              borderRadius: 8,
-              border: "0.5px solid #ccc",
-              fontSize: 14,
-              minWidth: 0,
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
             }}
           />
-          <button
-            onClick={handleRegister}
-            disabled={!modelsLoaded}
-            style={{
-              padding: "10px 18px",
-              borderRadius: 8,
-              border: "none",
-              background: modelsLoaded ? "#1D9E75" : "#ccc",
-              color: "#fff",
-              cursor: modelsLoaded ? "pointer" : "not-allowed",
-              fontSize: 14,
-              fontWeight: 500,
-              whiteSpace: "nowrap",
-            }}
-          >
-            Register Face
-          </button>
         </div>
 
-        {/* Recognize */}
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <input
-            type="text"
-            placeholder="Employee number to check"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            style={{
-              flex: "1 1 200px",
-              padding: "10px 12px",
-              borderRadius: 8,
-              border: "0.5px solid #ccc",
-              fontSize: 14,
-              minWidth: 0,
-            }}
-          />
-          <button
-            onClick={handleRecognize}
-            disabled={!modelsLoaded}
-            style={{
-              padding: "10px 18px",
-              borderRadius: 8,
-              border: "none",
-              background: modelsLoaded ? "#378ADD" : "#ccc",
-              color: "#fff",
-              cursor: modelsLoaded ? "pointer" : "not-allowed",
-              fontSize: 14,
-              fontWeight: 500,
-              whiteSpace: "nowrap",
-            }}
-          >
-            Check Attendance
-          </button>
+        {/* Controls */}
+        <div
+          style={{
+            marginTop: 20,
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+          }}
+        >
+          {/* Register */}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <input
+              type="text"
+              placeholder="Employee number to register"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              style={{
+                flex: "1 1 200px",
+                padding: "10px 12px",
+                borderRadius: 8,
+                border: "0.5px solid #ccc",
+                fontSize: 14,
+                minWidth: 0,
+              }}
+            />
+            <button
+              onClick={handleRegister}
+              disabled={!modelsLoaded}
+              style={{
+                padding: "10px 18px",
+                borderRadius: 8,
+                border: "none",
+                background: modelsLoaded ? "#1D9E75" : "#ccc",
+                color: "#fff",
+                cursor: modelsLoaded ? "pointer" : "not-allowed",
+                fontSize: 14,
+                fontWeight: 500,
+                whiteSpace: "nowrap",
+              }}
+            >
+              Register Face
+            </button>
+          </div>
+
+          {/* Recognize */}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <input
+              type="text"
+              placeholder="Employee number to check"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              style={{
+                flex: "1 1 200px",
+                padding: "10px 12px",
+                borderRadius: 8,
+                border: "0.5px solid #ccc",
+                fontSize: 14,
+                minWidth: 0,
+              }}
+            />
+            <button
+              onClick={handleRecognize}
+              disabled={!modelsLoaded}
+              style={{
+                padding: "10px 18px",
+                borderRadius: 8,
+                border: "none",
+                background: modelsLoaded ? "#378ADD" : "#ccc",
+                color: "#fff",
+                cursor: modelsLoaded ? "pointer" : "not-allowed",
+                fontSize: 14,
+                fontWeight: 500,
+                whiteSpace: "nowrap",
+              }}
+            >
+              Check Attendance
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
 };
 
 export default FaceDetector;
