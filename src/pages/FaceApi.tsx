@@ -14,13 +14,14 @@ const FaceDetector: React.FC = () => {
   const [name, setName] = useState("");
   const streamRef = useRef<MediaStream | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isDetecting = useRef(false);
 
   useEffect(() => {
     const loadModels = async () => {
       try {
         const MODEL_URL = "/models";
         await Promise.all([
-          faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+          faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
           faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
           faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
         ]);
@@ -44,7 +45,13 @@ const FaceDetector: React.FC = () => {
 
   const startVideo = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          facingMode: "user",
+        },
+      });
       streamRef.current = stream;
       if (videoRef.current) videoRef.current.srcObject = stream;
     } catch (err: any) {
@@ -68,17 +75,21 @@ const FaceDetector: React.FC = () => {
     faceapi.matchDimensions(canvas, displaySize);
 
     intervalRef.current = setInterval(async () => {
-      const detections = await faceapi
-        .detectAllFaces(video, new faceapi.SsdMobilenetv1Options())
-        .withFaceLandmarks();
+      if (isDetecting.current) return;
+      isDetecting.current = true;
+      try {
+        const detections = await faceapi
+          .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions());
 
-      const resized = faceapi.resizeResults(detections, displaySize);
+        const resized = faceapi.resizeResults(detections, displaySize);
 
-      const ctx = canvas.getContext("2d")!;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      faceapi.draw.drawDetections(canvas, resized);
-      faceapi.draw.drawFaceLandmarks(canvas, resized);
-    }, 100);
+        const ctx = canvas.getContext("2d")!;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        faceapi.draw.drawDetections(canvas, resized);
+      } finally {
+        isDetecting.current = false;
+      }
+    }, 150);
   };
 
   useEffect(() => {
@@ -94,7 +105,7 @@ const FaceDetector: React.FC = () => {
     const video = videoRef.current!;
 
     const detection = await faceapi
-      .detectSingleFace(video, new faceapi.SsdMobilenetv1Options())
+      .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
       .withFaceLandmarks()
       .withFaceDescriptor();
 
@@ -119,7 +130,7 @@ const FaceDetector: React.FC = () => {
 
     const video = videoRef.current!;
     const detection = await faceapi
-      .detectSingleFace(video, new faceapi.SsdMobilenetv1Options())
+      .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
       .withFaceLandmarks()
       .withFaceDescriptor();
 
@@ -149,10 +160,10 @@ const FaceDetector: React.FC = () => {
         await checkTeacherAttendance(name);
         if (data.status === "on_time") {
           alert("Siz vaqtida keldingiz");
-        } else if (data.status === 'late') {
-          alert(`Siz ${data.minutesLate} daqiqa kech qoldingiz`)
-        }else{
-          alert("Siz dars o'tqazib yubordingiz")
+        } else if (data.status === "late") {
+          alert(`Siz ${data.minutesLate} daqiqa kech qoldingiz`);
+        } else {
+          alert("Siz dars o'tqazib yubordingiz");
         }
       } catch (error: any) {
         alert(error.response?.data?.message);
