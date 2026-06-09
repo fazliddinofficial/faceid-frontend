@@ -39,12 +39,6 @@ const FaceDetector: React.FC = () => {
     if (modelsLoaded) startVideo();
   }, [modelsLoaded]);
 
-  useEffect(() => {
-    return () => {
-      streamRef.current?.getTracks().forEach((track) => track.stop());
-    };
-  }, []);
-
   const startVideo = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -80,20 +74,25 @@ const FaceDetector: React.FC = () => {
       if (isDetecting.current) return;
       isDetecting.current = true;
       try {
-        const detections = await faceapi.detectAllFaces(
+        const detection = await faceapi.detectSingleFace(
           video,
-          new faceapi.TinyFaceDetectorOptions(),
+          new faceapi.TinyFaceDetectorOptions({
+            inputSize: 224,
+            scoreThreshold: 0.5,
+          }),
         );
-
-        const resized = faceapi.resizeResults(detections, displaySize);
 
         const ctx = canvas.getContext("2d")!;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        faceapi.draw.drawDetections(canvas, resized);
+
+        if (detection) {
+          const resized = faceapi.resizeResults(detection, displaySize);
+          faceapi.draw.drawDetections(canvas, [resized]); // wrap in array — drawDetections expects array
+        }
       } finally {
         isDetecting.current = false;
       }
-    }, 150);
+    }, 500);
   };
 
   useEffect(() => {

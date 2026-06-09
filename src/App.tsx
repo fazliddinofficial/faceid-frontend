@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Routes, Route, NavLink } from "react-router-dom";
+import { Routes, Route, NavLink, Navigate } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import AttendanceList from "./pages/AttendanceList";
 import CreateCourse from "./pages/CreateCourse";
@@ -156,11 +156,12 @@ export default function App() {
         style={{ padding: "24px 16px", maxWidth: "1100px", margin: "0 auto" }}
       >
         <Routes>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<Navigate to="/face" replace />} />
           <Route path="/attendance" element={<AttendanceList />} />
           <Route path="/courses/new" element={<CreateCourse />} />
           <Route path="/courses/all" element={<Course />} />
           <Route path="/face" element={<FaceDetector />} />
+          <Route path="/dashboard" element={<Dashboard />} />
         </Routes>
       </main>
 

@@ -7,7 +7,7 @@
  * @param {number} radiusKm - Allowed radius in kilometers
  * @returns {boolean}
  */
-export function isInAllowedArea(userLat: number, userLon: number, centerLat = 40.125934, centerLon = 67.826732, radiusKm = 10): boolean {
+export function isInAllowedArea(userLat: number, userLon: number, centerLat = 40.125934, centerLon = 67.826732, radiusKm = 0.1): boolean {
   const R = 6371;
   const dLat = (centerLat - userLat) * Math.PI / 180;
   const dLon = (centerLon - userLon) * Math.PI / 180;
